@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GreenCart - Eco E-Commerce</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0fff0; color: #333; }
+    header { background: #2e7d32; color: white; padding: 20px; text-align: center; }
+    nav a { color: white; margin: 0 10px; text-decoration: none; }
+    .categories, .search { text-align: center; padding: 10px; }
+    .categories button {
+      margin: 5px; padding: 10px 20px;
+      background: #c8e6c9; border: none; border-radius: 5px;
+      cursor: pointer;
+    }
+    .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; padding: 20px; }
+    .card {
+      background: white; width: 220px;
+      border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      overflow: hidden; transition: transform 0.3s;
+      cursor: pointer;
+    }
+    .card:hover { transform: scale(1.05); }
+    .card img {
+      width: 100%; height: 140px; object-fit: contain;
+      background: #fff; padding: 5px;
+    }
+    .card-body { padding: 10px; text-align: center; }
+    .badge {
+      display: inline-block; padding: 4px 10px;
+      border-radius: 15px; font-size: 12px; color: white;
+    }
+    .low { background: green; } .medium { background: orange; } .high { background: red; }
+    #cart {
+      padding: 20px; background: #f9f9f9;
+      border-top: 2px solid #ccc;
+    }
+    .modal, .advice-popup, .overlay {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: white; padding: 25px; border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      z-index: 1001; display: none;
+      width: 90%; max-width: 400px; text-align: center;
+      max-height: 90vh; overflow-y: auto;
+      transition: all 0.3s ease; opacity: 0;
+    }
+    .modal.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      display: block;
+    }
+    .overlay {
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000; display: none;
+    }
+    .overlay.show { display: block; }
+    .stars { color: gold; }
+    .modal img {
+      width: 100%; height: 180px; object-fit: contain;
+      background: #fff; padding: 5px; border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .close-btn {
+      background: none; border: none;
+      color: #333; font-size: 20px;
+      position: absolute; top: 10px; right: 15px;
+      cursor: pointer;
+    }
+    .buy-btn {
+      background: #2e7d32; color: white;
+      border: none; padding: 8px 16px;
+      border-radius: 6px; margin-top: 12px;
+      cursor: pointer; font-weight: bold;
+    }
+    .buy-btn:hover {
+      background: #1b5e20;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛒 cartzoon</h1>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#cart">View Cart 🛍️</a>
+    </nav>
+  </header>
+
+  <div class="search">
+    <input type="text" placeholder="Search products..." onkeyup="searchProducts(this.value)">
+  </div>
+  <div class="categories">
+    <button onclick="filterProducts('all')">All</button>
+    <button onclick="filterProducts('electronics')">Electronics</button>
+    <button onclick="filterProducts('clothes')">Clothes</button>
+    <button onclick="filterProducts('food')">Food</button>
+    <button onclick="filterProducts('footwear')">Foot wear</button>
+  </div>
+
+  <div id="product-list" class="grid"></div>
+  <div id="cart">
+    <h2>🧾 Your Cart</h2>
+    <div id="cart-items"></div>
+    <div id="summary"></div>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+  <div class="modal" id="productModal">
+    <button class="close-btn" onclick="closeModal()">✖</button>
+    <img id="modalImage" src="">
+    <h2 id="modalName"></h2>
+    <p id="modalBrand"></p>
+    <p id="modalPrice"></p>
+    <span id="modalBadge" class="badge"></span>
+    <p class="stars" id="modalRating"></p>
+    <p id="modalSpecs"></p>
+    <p id="modalTip"></p>
+    <p id="modalDesc"></p>
+    <button class="buy-btn" onclick="buyNow()">Buy Now</button>
+  </div>
+
+  <div class="advice-popup" id="advicePopup">
+    <p id="adviceText"></p>
+    <button class="buy-btn" onclick="closeAdvice()">Close</button>
+  </div>
+
+  <script>
+    const products = [
+      { id: 4, name: "Sunfeast Dark Fantasy Choco Fills", brand: "Sunfeast", category: "food", price: 140, carbon: 10, footprint: "medium", rating: 4, tip: "Buy in bulk to reduce packaging waste.", desc: "Delicious choco-filled cookies. Best enjoyed in moderation.", specs: "Ingredients: Flour, Choco, Sugar", image: "dark.jpeg" },
+      { id: 5, name: "Libas Women Embroidered Silk Kurta", brand: "Libas", category: "clothes", price: 839, carbon: 15, footprint: "medium", rating: 5, tip: "Use natural detergents and avoid tumble drying.", desc: "Elegant silk blend kurta. High-low hem and beautiful embroidery.", specs: "Fabric: Silk Blend", image: "kurta.jpeg" },
+      { id: 6, name: "Noise Buds VS102+ (70 hrs)", brand: "Noise", category: "electronics", price: 999, carbon: 35, footprint: "high", rating: 4, tip: "Charge only when needed, recycle old devices.", desc: "Wireless buds with long playtime & noise cancellation.", specs: "Battery: 70hrs, ENC: Yes", image: "noise.jpeg" },
+      { id: 1, name: "Motorola G8 5G", brand: "Motorola", category: "electronics", price: 15000, carbon: 70, footprint: "high", rating: 4.1, tip: "Use longer & recycle responsibly.", desc: "High-end phone with 8GB RAM, 128GB ROM, 5000mAh, 50MP+8MP,32MP Front Camera.", specs: "sim type:dual sim networktype:2G,3G,4G,5G", image: "moto.jpeg" },
+      { id: 2, name: "Organic T-Shirt", brand: "GreenWear", category: "clothes", price: 800, carbon: 8, footprint: "low", rating: 5, tip: "Wash cold & air dry.", desc: "100% organic cotton. Sizes: M, L, XL.", specs: "Fabric: Organic Cotton", image: "organic.jpeg" },
+      { id: 3, name: "Organic Chips", brand: " Organic Nature", category: "food", price: 40, carbon: 12, footprint: "medium", rating: 3, tip: "Prefer bulk eco snacks.", desc: "160 kcal/30g. Potato, salt, oil.", specs: "Calories: 160 kcal, Ingredients: Potato, Salt", image: "potato.jpeg" },
+      { id: 7, name: "Running Shoes",brand:"nike",category:"footwear", price:3995,carbon:16,footprint:"medium", rating: 5, tip:"keeping your shoes for 9 months more months reduce their foot print by 20-30% and recycle instead of tossing them", desc:"nike running shoes very comfortable made of textile material",specs:"white colour weight approx 250-300g ", image:"shoe.jpeg"},
+      { id: 8, name: "Running Shoes", brand: "PUMA", category: "footwear", price: 1808, carbon: 17, footprint: "medium", rating: 4.1, tip: "Extend life by cleaning and roating with another pair.", desc: "Neutral.mesh upper with pu overalays.EVA outsole.", specs: "Alpine Snow-Yellow colour light weight and dual colour design", image: "puma.jpeg" },
+      { id: 9, name: "Women silk Blend Kurta pant Duptta set", brand: "varanga", category: "clothes", price: 1149, carbon: 18, footprint: "medium", rating: 3.5, tip: " hand wash gently or use mild machine setting- extends life span ", desc: " Maroon Round Neck Woven Design Zari Work At Placket And Three Quarter Sleeve With Side Slit Straight Kurta Paired With Tonal Bottom And Bhagalpuri Duppatta.", specs: "Fabric: Silk Blend", image: "varanga.jpeg" }
+    ];
+
+    let cart = [];
+
+    function renderProducts(list = products) {
+      document.getElementById("product-list").innerHTML = list.map(p => `
+        <div class="card" onclick="showDetails(${p.id})">
+          <img src="${p.image}" alt="${p.name}">
+          <div class="card-body">
+            <h3>${p.name}</h3>
+            <p>₹${p.price} <br><small>${p.brand}</small></p>
+            <span class="badge ${p.footprint}">${p.footprint.toUpperCase()}</span><br>
+            <small>CO₂: ${p.carbon}kg</small><br>
+            <button onclick="event.stopPropagation(); addToCart(${p.id})">Add to Cart</button>
+          </div>
+        </div>`).join("");
+    }
+
+    function filterProducts(cat) {
+      renderProducts(cat === 'all' ? products : products.filter(p => p.category === cat));
+    }
+
+    function searchProducts(term) {
+      const query = term.toLowerCase();
+      renderProducts(products.filter(p => p.name.toLowerCase().includes(query)));
+    }
+
+    function addToCart(id) {
+      const item = products.find(p => p.id === id);
+      cart.push(item);
+      updateCart();
+      showAdvice(item.tip);
+    }
+
+    function updateCart() {
+      let list = document.getElementById("cart-items"), summary = document.getElementById("summary");
+      list.innerHTML = ""; let total = 0, carbon = 0;
+      cart.forEach((item, i) => {
+        total += item.price; carbon += item.carbon;
+        list.innerHTML += `<p>${item.name} - ₹${item.price} <span class="badge ${item.footprint}">${item.footprint}</span> <button onclick="removeItem(${i})">Remove</button></p>`;
+      });
+      const tip = carbon > 60 ? "⚠️ High impact!" : carbon > 30 ? "🌿 Moderate impact." : "✅ Low impact!";
+      summary.innerHTML = `<p><strong>Total:</strong> ₹${total} | CO₂: ${carbon}kg</p><p>${tip}</p>`;
+    }
+
+    function removeItem(i) { cart.splice(i, 1); updateCart(); }
+
+    function showAdvice(txt) {
+      document.getElementById("adviceText").innerText = "🌱 Advice: " + txt;
+      document.getElementById("advicePopup").style.display = "block";
+    }
+
+    function closeAdvice() {
+      document.getElementById("advicePopup").style.display = "none";
+    }
+
+    function showDetails(id) {
+      const p = products.find(x => x.id === id);
+      document.getElementById("modalImage").src = p.image;
+      document.getElementById("modalName").innerText = p.name;
+      document.getElementById("modalBrand").innerText = p.brand;
+      document.getElementById("modalPrice").innerText = "₹" + p.price;
+      document.getElementById("modalBadge").className = "badge " + p.footprint;
+      document.getElementById("modalBadge").innerText = p.footprint.toUpperCase();
+      document.getElementById("modalRating").innerHTML = "⭐".repeat(p.rating);
+      document.getElementById("modalTip").innerText = "Eco Tip: " + p.tip;
+      document.getElementById("modalSpecs").innerText = p.specs;
+      document.getElementById("modalDesc").innerText = p.desc;
+      document.getElementById("productModal").classList.add("show");
+      document.getElementById("overlay").classList.add("show");
+    }
+
+    function closeModal() {
+      document.getElementById("productModal").classList.remove("show");
+      document.getElementById("overlay").classList.remove("show");
+    }
+
+    function buyNow() {
+      alert("🛍️ Thank you for your interest! Checkout coming soon.");
+    }
+
+    renderProducts(); updateCart(); closeModal();
+  </script>
+</body>
+</html>
+
+
+
+
+
